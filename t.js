@@ -10,16 +10,14 @@ const ddb = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'})
 
 
 const table = 'todo'
-const isoToDayStr = s => s.substring(0,10)  // '2020-08-19'
-const isoToTimeStr = s => s.substring(11,16)  // '21:04      // WRONG TIME ZONE
-const isoStr = () => (new Date()).toISOString()
+const td = require('./src/tdates')
 
 // get and return 'done' string for given day
-const getDone = async ( dayStr=isoToDayStr(isoStr())  ) => {
+const getDone = async ( key  ) => {
   const params = {
       TableName: table,
       Key:{
-          pk1: dayStr
+          pk1: key
       }
   }
 
@@ -32,11 +30,11 @@ const getDone = async ( dayStr=isoToDayStr(isoStr())  ) => {
   return ('Item' in data) ? data.Item.val : ""
 }
 
-const putDone = async ( newVal, dayStr=isoToDayStr(isoStr()) ) => {
+const putDone = async ( newVal, key ) => {
   const params = {
     TableName: table,
     Item: {
-      pk1: dayStr,
+      pk1: key,
       val: newVal
     }
   }
@@ -75,15 +73,16 @@ const main = async () => {
     return
   }
 
-  val = await getDone()
+  const doneKey = td.isoToDayStr(td.isoStr())
+  val = await getDone(doneKey)
   const newDone = process.argv.slice(2).join(' ')
   if (newDone == '') { // empty? just print current value
     console.log(`val: ${val}`)
   } else { 
-    const timeStr = isoToTimeStr(isoStr())
+    const timeStr = td.isoToTimeStr(td.isoStr())
     const newValStr = `${val}\n${timeStr}: ${newDone}`
 console.log(`putting... ${newValStr}`)
-    await putDone(newValStr)
+    await putDone(newValStr, doneKey)
   }
 }
 
