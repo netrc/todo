@@ -1,6 +1,8 @@
 #!/usr/bin/node
 
 const fs = require('fs')
+const cp = require('child_process')
+const tmp = require('tmp')
 const td = require('./src/tdates')
 const ddb = require('./src/ddb')
 
@@ -29,9 +31,23 @@ const main = async () => {
       const fname = av[4]
       putFileItem(fname, 'todo')
     }
+    if (av[3]=='-e') {
+      const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
+      const f = tmp.fileSync() // and should auto-delete at process exit
+      console.log(`using ${f.name}`)
+      val = await ddb.getItem('todo')
+      fs.writeFileSync(f.name,val)
+      cp.spawnSync(editor, [f.name], {
+        stdio: 'inherit'
+      })
+      console.log('done editing')
+      putFileItem(f.name, 'todo')
+      //f.removeCallback()  // alas, seems like we need to do it manually
+    }
     return
   }
 
+  // done stuff
   const doneKey = td.isoToDayStr(td.isoStr())
   val = await ddb.getItem(doneKey)
   const newDone = process.argv.slice(2).join(' ')
@@ -46,3 +62,4 @@ const main = async () => {
 }
 
 main()
+
