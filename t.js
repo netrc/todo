@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
 
+const fs = require('fs')
 const AWS = require('aws-sdk')
 AWS.config.update({
   region: 'us-east-1'
@@ -22,7 +23,7 @@ const getDone = async ( dayStr=isoToDayStr(isoStr())  ) => {
       }
   }
 
-  data = await ddb.get(params).promise().catch( err => {
+  const data = await ddb.get(params).promise().catch( err => {
       console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2))
       return ""
   })
@@ -43,7 +44,12 @@ const putDone = async ( newVal, dayStr=isoToDayStr(isoStr()) ) => {
   await ddb.put(params).promise().catch( err => {
       console.error("Unable to put item. Error JSON:", JSON.stringify(err, null, 2))
   })
-  console.log("putItem succeeded:", JSON.stringify(data, null, 2))
+  //console.log("putItem succeeded:", JSON.stringify(data, null, 2))   // this shouldn't work; data ??
+}
+
+const putFileItem = async ( fname, itemKey ) => {
+  const fVal = fs.readFileSync( fname, 'utf8' )
+  await putDone( fVal, itemKey)
 }
 
 // done - show today's done
@@ -56,9 +62,16 @@ const putDone = async ( newVal, dayStr=isoToDayStr(isoStr()) ) => {
 // done -g a b  - grep 'a b' in todo
 const main = async () => {
   const av = process.argv
-  if (av.length==3 && av[2]=="-t") {
-    val = await getDone('todo')
-    console.log(`todo: ${val}`)
+
+  if (av.length>=3 && av[2]=="-t") { // todo stuff
+    if (av.length==3) {  // no more args, just show
+      val = await getDone('todo')
+      console.log(val)
+    }
+    if (av[3]=='-f') {
+      const fname = av[4]
+      putFileItem(fname, 'todo')
+    }
     return
   }
 
