@@ -55,6 +55,12 @@ const putDone = async ( newVal, dayStr=isoToDayStr(isoStr()) ) => {
 // done -t <file>  - replace file contents into todo;  put DONE lines into done for today
 // done -g a b  - grep 'a b' in todo
 const main = async () => {
+  const av = process.argv
+  if (av.length==3 && av[2]=="-t") {
+    val = await getDone('todo')
+    console.log(`todo: ${val}`)
+    return
+  }
 
   val = await getDone()
   const newDone = process.argv.slice(2).join(' ')
