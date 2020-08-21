@@ -1,5 +1,8 @@
 #!/usr/bin/node
 
+// Auth:  uses AWS env vars for auth
+require('./src/envChecks.js').exitIfMissing( [ 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID' ] )
+
 const fs = require('fs')
 const cp = require('child_process')
 const tmp = require('tmp')
@@ -11,14 +14,25 @@ const putFileItem = async ( fname, itemKey ) => {
   await ddb.putItem( fVal, itemKey)
 }
 
+const addDoneItemList = async ( lines, oldVal, key ) => {
+    const timeStr = td.isoToTimeStr(td.isoStr())
+    const newLines = lines.map( l => `[${timeStr}] ${l}` )
+    const newValStr = [ oldVal, ...newLines ].join('\n')   //; console.log(`putting... ${newValStr}`)
+    await ddb.putItem(newValStr, key)
+}
+
+const doneFilter = l => l.substring(0,4)=="DONE"
+const notDoneFilter = l => !(doneFilter(l))
+
 // done - show today's done
 // done some text  - add timestamp text to today's done
 // done -d 2020-08-19  - show that day's done
 // done -d 2020-08-19  text  - add timestamp text to that day's done
 // done -w  show this week's done
 // done -t  - return todo
-// done -t <file>  - replace file contents into todo;  put DONE lines into done for today
-// done -g a b  - grep 'a b' in todo
+// done -t -f <file>  - replace file contents into todo;  put DONE lines into done for today
+// done -t -e - open editor on todo and replace todo;  put DONE lines into done for oday
+// done -t -g a b  - grep 'a b' in todo
 const main = async () => {
   const av = process.argv
 
@@ -40,9 +54,17 @@ const main = async () => {
       cp.spawnSync(editor, [f.name], {
         stdio: 'inherit'
       })
-      console.log('done editing')
-      putFileItem(f.name, 'todo')
+
+  const fVal = fs.readFileSync( f.name, 'utf8' )
+  const doneItems = fVal.split('\n').filter( doneFilter )
+  const notDoneItems = fVal.split('\n').filter( notDoneFilter )
+  console.log(`doners: ${notDoneItems.join('\n')}`)
+      //putFileItem(f.name, 'todo')
+  ddb.putItem(notDoneItems.join('\n'), 'todo')
       //f.removeCallback()  // alas, seems like we need to do it manually
+  const doneKey = td.isoToDayStr(td.isoStr())
+  val = await ddb.getItem(doneKey)
+  addDoneItemList( doneItems, val, doneKey )
     }
     return
   }
@@ -54,10 +76,7 @@ const main = async () => {
   if (newDone == '') { // empty? just print current value
     console.log(val)
   } else { 
-    const timeStr = td.isoToTimeStr(td.isoStr())
-    const newValStr = `${val}\n${timeStr}: ${newDone}`
-    //console.log(`putting... ${newValStr}`)
-    await ddb.putItem(newValStr, doneKey)
+    addDoneItemList( [ newDone ], val, doneKey )
   }
 }
 
