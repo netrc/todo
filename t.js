@@ -9,6 +9,9 @@ const tmp = require('tmp')
 const td = require('./src/tdates')
 const ddb = require('./src/ddb')
 
+const doneFilter = l => l.substring(0,4)=="DONE"
+const partitionByDONE = require('./src/partition').partitionArrayBy(doneFilter)
+
 const putFileItem = async ( fname, itemKey ) => {
   const fVal = fs.readFileSync( fname, 'utf8' )
   await ddb.putItem( fVal, itemKey)
@@ -20,9 +23,6 @@ const addDoneItemList = async ( lines, oldVal, key ) => {
     const newValStr = [ oldVal, ...newLines ].join('\n')   //; console.log(`putting... ${newValStr}`)
     await ddb.putItem(newValStr, key)
 }
-
-const doneFilter = l => l.substring(0,4)=="DONE"
-const notDoneFilter = l => !(doneFilter(l))
 
 // done - show today's done
 // done some text  - add timestamp text to today's done
@@ -47,24 +47,21 @@ const main = async () => {
     }
     if (av[3]=='-e') {
       const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
-      const f = tmp.fileSync() // and should auto-delete at process exit
-      console.log(`using ${f.name}`)
+      const f = tmp.fileSync() // should auto-delete at process exit (...but doesn't)
+      //console.log(`using ${f.name}`)
       val = await ddb.getItem('todo')
       fs.writeFileSync(f.name,val)
       cp.spawnSync(editor, [f.name], {
         stdio: 'inherit'
       })
 
-  const fVal = fs.readFileSync( f.name, 'utf8' )
-  const doneItems = fVal.split('\n').filter( doneFilter )
-  const notDoneItems = fVal.split('\n').filter( notDoneFilter )
-  console.log(`doners: ${notDoneItems.join('\n')}`)
-      //putFileItem(f.name, 'todo')
-  ddb.putItem(notDoneItems.join('\n'), 'todo')
-      //f.removeCallback()  // alas, seems like we need to do it manually
-  const doneKey = td.isoToDayStr(td.isoStr())
-  val = await ddb.getItem(doneKey)
-  addDoneItemList( doneItems, val, doneKey )
+      const fVal = fs.readFileSync( f.name, 'utf8' )
+      const arDones = partitionByDONE( fVal.split('\n') ) //; console.dir(arDones.get(true))
+      ddb.putItem(arDones.get(false).join('\n'), 'todo') // the not DONEs
+      f.removeCallback()  // alas, seems like we need to do it manually
+      const doneKey = td.isoToDayStr(td.isoStr())
+      val = await ddb.getItem(doneKey)
+      addDoneItemList( arDones.get(true), val, doneKey )
     }
     return
   }
