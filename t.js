@@ -39,13 +39,17 @@ const main = async () => {
     if (av[3]=='-e') {
       const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
       const f = tmp.fileSync() //; console.log(`using ${f.name}`) // doesn't auto-delete at exit 
-      val = await Todo.get()
-      fs.writeFileSync(f.name,val)
+      const tval = await Todo.get()
+      fs.writeFileSync(f.name,tval)
       cp.spawnSync(editor, [f.name], {stdio: 'inherit'})
-      const fVal = fs.readFileSync( f.name, 'utf8' )
+      const fval = fs.readFileSync( f.name, 'utf8' )
       f.removeCallback()  // alas, seems like we need to do it manually
+      if (tval==fval) {
+        console.log('no todo file changes')
+        return
+      }
 
-      const [ dones, todos ] = partitionByDONE( fVal.split('\n') ) //; console.dir(dones)
+      const [ dones, todos ] = partitionByDONE( fval.split('\n') ) //; console.dir(dones)
       if (todos) { // though will always be defined
         await Todo.put( todos.join('\n') ) // the not DONEs
       }
