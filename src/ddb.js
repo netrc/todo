@@ -6,13 +6,28 @@ AWS.config.update({
 const ddb = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'})
 
 
-const table = 'todo'
+const envExists = e => (e in process.env)
+const envNotEmpty = e => (process.env[e] != '')
 
+const envList = [ 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID' ]
+exports.checkEnv = ( ) => {
+  if (  ! envList.every(envExists)  || ! envList.every(envNotEmpty) ) {
+    console.log(`must set environment variables for auth: ${envList.join(', ')}`)
+    process.exit(1)
+  }
+}
+
+
+const conf = {
+  table: 'todo'
+}
+
+exports.setTable = t => { conf.table = t }
 
 // get and return 'done' string for given day
 exports.getItem = async ( key  ) => {
   const params = {
-      TableName: table,
+      TableName: conf.table,
       Key:{
           pk1: key
       }
@@ -29,7 +44,7 @@ exports.getItem = async ( key  ) => {
 
 exports.putItem = async ( newVal, key ) => {
   const params = {
-    TableName: table,
+    TableName: conf.table,
     Item: {
       pk1: key,
       val: newVal
