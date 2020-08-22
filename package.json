@@ -1,0 +1,24 @@
+{
+  "name": "todo",
+  "version": "1.0.0",
+  "description": "yet another todo CLI",
+  "main": "t.js",
+  "dependencies": {
+    "aws-sdk": "^2.737.0",
+    "tmp": "^0.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/netrc/todo.git"
+  },
+  "author": "netrc",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/netrc/todo/issues"
+  },
+  "homepage": "https://github.com/netrc/todo#readme"
+}
