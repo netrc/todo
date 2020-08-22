@@ -1,5 +1,6 @@
 
 // model -> database wrapper
+const fs = require('fs')
 
 const ddb = require('./ddb')
 const td = require('./tdates')
