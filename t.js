@@ -9,7 +9,7 @@ const [ Model, Todo, Journal ] = require('./src/model').models()
 
 Model.checkEnv() // check for AWS auth; or exits
 
-const doneFilter = (l) => l.substring(0, 4)=='DONE'
+const doneFilter = l => l.substring(0, 4)=='DONE'
 const partitionByDONE = pa.partitionArrayBy(doneFilter)
 
 const main = async () => {
@@ -18,11 +18,11 @@ const main = async () => {
   if (av.length==3 && (av[2]=='-h' || av[2]=='-?' || av[2]=='--help')) {
     const p = av[1]
     console.log(`${p} - todo/journal editor
-      ${p} -t                             print todo to stdout
-      ${p} -t -e                          open editor on todo; replace todo; put "DONE " lines into journal
-      ${p} -t -f <file>                   replace file contents into todo and DONE to journal
-      ${p} [-d yyyy-mm-dd] <no args>      show today's (or date) journal
-      ${p} [-d yyyy-mm-dd] some text      add some text w/ timestamp to today's (or date) journal
+      ${p} -t                          print todo to stdout
+      ${p} -t -e                       edit&replae todo; "DONE " to journal
+      ${p} -t -f <file>                put file contents into todo 
+      ${p} [-d yyyy-mm-dd] <no args>   show today's (or date) journal
+      ${p} [-d yyyy-mm-dd] some text   add text w/ timestamp to journal
     `)
     return
   }

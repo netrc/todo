@@ -10,9 +10,9 @@ const envExists = e => (e in process.env)
 const envNotEmpty = e => (process.env[e] != '')
 
 const envList = [ 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID' ]
-exports.checkEnv = ( ) => {
-  if (  ! envList.every(envExists)  || ! envList.every(envNotEmpty) ) {
-    console.log(`must set environment variables for auth: ${envList.join(', ')}`)
+exports.checkEnv = () => {
+  if ( ! envList.every(envExists) || ! envList.every(envNotEmpty) ) {
+    console.log(`must set env variables for auth: ${envList.join(', ')}`)
     process.exit(1)
   }
 }
@@ -22,24 +22,26 @@ const conf = {
   table: 'todo'
 }
 
-exports.setTable = t => { conf.table = t }
+exports.setTable = t => {
+  conf.table = t
+}
 
 // get and return 'done' string for given day
-exports.getItem = async ( key  ) => {
+exports.getItem = async key => {
   const params = {
-      TableName: conf.table,
-      Key:{
-          pk1: key
-      }
+    TableName: conf.table,
+    Key: {
+      pk1: key
+    }
   }
 
   const data = await ddb.get(params).promise().catch( err => {
-      console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2))
-      return ""
+    console.error('read item error:', JSON.stringify(err, null, 2))
+    return ''
   })
-  // console.log("GetItem succeeded:", JSON.stringify(data, null, 2))
+  // console.log('GetItem succeeded:', JSON.stringify(data, null, 2))
   // call succeeded - but may not exist
-  return ('Item' in data) ? data.Item.val : ""
+  return ('Item' in data) ? data.Item.val : ''
 }
 
 exports.putItem = async ( newVal, key ) => {
@@ -52,7 +54,7 @@ exports.putItem = async ( newVal, key ) => {
   }
 
   await ddb.put(params).promise().catch( err => {
-      console.error("Unable to put item. Error JSON:", JSON.stringify(err, null, 2))
+    console.error('put item error:', JSON.stringify(err, null, 2))
   })
-  //console.log("putItem succeeded:", JSON.stringify(data, null, 2))   // this shouldn't work; data ??
+  // console.log('putItem succeeded:', JSON.stringify(data, null, 2))
 }
