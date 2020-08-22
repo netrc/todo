@@ -9,13 +9,13 @@ const [ Model, Todo, Journal ] = require('./src/model').models()
 
 Model.checkEnv() // check for AWS auth; or exits
 
-const doneFilter = l => l.substring(0,4)=="DONE"
+const doneFilter = (l) => l.substring(0, 4)=='DONE'
 const partitionByDONE = pa.partitionArrayBy(doneFilter)
 
 const main = async () => {
   const av = process.argv
 
-  if (av.length==3 && (av[2]=="-h" || av[2]=="-?" || av[2]=="--help")) { 
+  if (av.length==3 && (av[2]=='-h' || av[2]=='-?' || av[2]=='--help')) {
     const p = av[1]
     console.log(`${p} - todo/journal editor
       ${p} -t                             print todo to stdout
@@ -27,8 +27,8 @@ const main = async () => {
     return
   }
 
-  if (av.length>=3 && av[2]=="-t") { // todo stuff
-    if (av.length==3) {  // no more args, just show
+  if (av.length>=3 && av[2]=='-t') { // todo stuff
+    if (av.length==3) { // no more args, just show
       val = await Todo.get()
       console.log(val)
     }
@@ -38,18 +38,18 @@ const main = async () => {
     }
     if (av[3]=='-e') {
       const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
-      const f = tmp.fileSync() //; console.log(`using ${f.name}`) // doesn't auto-delete at exit 
+      const f = tmp.fileSync() // doesn't auto-delete at exit
       const tval = await Todo.get()
-      fs.writeFileSync(f.name,tval)
-      cp.spawnSync(editor, [f.name], {stdio: 'inherit'})
+      fs.writeFileSync(f.name, tval)
+      cp.spawnSync(editor, [ f.name ], {stdio: 'inherit'})
       const fval = fs.readFileSync( f.name, 'utf8' )
-      f.removeCallback()  // alas, seems like we need to do it manually
+      f.removeCallback() // alas, seems like we need to do it manually
       if (tval==fval) {
         console.log('no todo file changes')
         return
       }
 
-      const [ dones, todos ] = partitionByDONE( fval.split('\n') ) //; console.dir(dones)
+      const [ dones, todos ] = partitionByDONE( fval.split('\n') )
       if (todos) { // though will always be defined
         await Todo.put( todos.join('\n') ) // the not DONEs
       }
@@ -65,13 +65,13 @@ const main = async () => {
   let doneKey = td.isoToDayStr(td.isoStr())
   if (av.length>=3 && av[2]=='-d') {
     doneKey = av[3]
-    av.splice(2,2) 
+    av.splice(2, 2)
   }
   const newDone = av.slice(2).join(' ')
   if (newDone == '') { // empty? just print current value
     const val = await Journal.get(doneKey)
     console.log(val)
-  } else { 
+  } else {
     await Journal.addDoneItemList( [ newDone ], doneKey )
   }
 }
