@@ -1,11 +1,8 @@
 #!/usr/bin/node
 
-// Auth:  uses AWS env vars for auth
-require('./envChecks.js').exitIfMissing( [ 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID' ] )
-
 const ddb = require('./ddb')
 
-ddb.checkEnv()
+ddb.checkEnv() // Auth:  uses AWS env vars for auth
 
 const hr = '------------------------\n'
 const main = async () => {
