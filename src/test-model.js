@@ -14,11 +14,13 @@ const j20200819 = `nothing yet
 test('gets aug 19 journal', async t => {
   Model.checkEnv()
   
-  //val = await Todo.get()
-  //console.log(`todo...\n`,val)
+  const tval = await Todo.get()
+  //console.log(`todo...\n`,val.substr(0,60))
+  t.true(tval.length>50)  
+  t.is(tval.substring(0,6), '# Todo')  
 
-  val = await Journal.get('2020-08-19')
-  t.is(val, j20200819)  
+  const jval = await Journal.get('2020-08-19')
+  t.is(jval, j20200819)  
 })
 
 
