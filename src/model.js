@@ -17,10 +17,10 @@ Todo.get = async () => {
   const val = await ddb.getItem(Todo._type)
   return val
 }
-Todo.put = async (s) => {
+Todo.put = async s => {
   await ddb.putItem( s, Todo._type)
 }
-Todo.putFile = async ( fname ) => {
+Todo.putFile = async fname => {
   const fVal = fs.readFileSync( fname, 'utf8' )
   await Todo.put(fVal)
 }
@@ -30,17 +30,18 @@ Todo.putFile = async ( fname ) => {
 const Journal = {
   _type: 'journal' // ddb primary key
 }
-Journal.get = async (key) => {
-  const val = await ddb.getItem(key)    // will use _type, key soon
+Journal.get = async key => {
+  const val = await ddb.getItem(key) // will use _type, key soon
   return val
 }
 Journal.addDoneItemList = async ( lines, key ) => {
-  if (!lines)
+  if (!lines) {
     return
+  }
   const oldVal = await ddb.getItem(key)
   const timeStr = td.isoToTimeStr(td.isoStr())
   const newLines = lines.map( l => `[${timeStr}] ${l}` )
-  const newValStr = [ oldVal, ...newLines ].join('\n')   //; console.log(`putting... ${newValStr}`)
+  const newValStr = [ oldVal, ...newLines ].join('\n')
   await ddb.putItem(newValStr, key)
 }
 
