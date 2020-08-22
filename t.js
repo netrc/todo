@@ -1,16 +1,16 @@
 #!/usr/bin/node
 
-// Auth:  uses AWS env vars for auth
-require('./src/envChecks.js').exitIfMissing( [ 'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID' ] )
-
 const fs = require('fs')
 const cp = require('child_process')
 const tmp = require('tmp')
 const td = require('./src/tdates')
 const ddb = require('./src/ddb')
+const pa = require('./src/partition')
+
+ddb.checkEnv() // check for AWS auth; or exits
 
 const doneFilter = l => l.substring(0,4)=="DONE"
-const partitionByDONE = require('./src/partition').partitionArrayBy(doneFilter)
+const partitionByDONE = pa.partitionArrayBy(doneFilter)
 
 const putFileItem = async ( fname, itemKey ) => {
   const fVal = fs.readFileSync( fname, 'utf8' )
@@ -18,23 +18,28 @@ const putFileItem = async ( fname, itemKey ) => {
 }
 
 const addDoneItemList = async ( lines, oldVal, key ) => {
+    if (!lines)
+      return
     const timeStr = td.isoToTimeStr(td.isoStr())
     const newLines = lines.map( l => `[${timeStr}] ${l}` )
     const newValStr = [ oldVal, ...newLines ].join('\n')   //; console.log(`putting... ${newValStr}`)
     await ddb.putItem(newValStr, key)
 }
 
-// done - show today's done
-// done some text  - add timestamp text to today's done
-// done -d 2020-08-19  - show that day's done
-// done -d 2020-08-19  text  - add timestamp text to that day's done
-// done -w  show this week's done
-// done -t  - return todo
-// done -t -f <file>  - replace file contents into todo;  put DONE lines into done for today
-// done -t -e - open editor on todo and replace todo;  put DONE lines into done for oday
-// done -t -g a b  - grep 'a b' in todo
 const main = async () => {
   const av = process.argv
+
+  if (av.length==3 && (av[2]=="-h" || av[2]=="-?" || av[2]=="--help")) { 
+    const p = av[1]
+    console.log(`${p} - todo/journal editor
+      ${p} -t                             print todo to stdout
+      ${p} -t -e                          open editor on todo; replace todo; put "DONE " lines into journal
+      ${p} -t -f <file>                   replace file contents into todo and DONE to journal
+      ${p} [-d yyyy-mm-dd] <no args>      show today's (or date) journal
+      ${p} [-d yyyy-mm-dd] some text      add some text w/ timestamp to today's (or date) journal
+    `)
+    return
+  }
 
   if (av.length>=3 && av[2]=="-t") { // todo stuff
     if (av.length==3) {  // no more args, just show
@@ -47,29 +52,34 @@ const main = async () => {
     }
     if (av[3]=='-e') {
       const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
-      const f = tmp.fileSync() // should auto-delete at process exit (...but doesn't)
-      //console.log(`using ${f.name}`)
+      const f = tmp.fileSync() //; console.log(`using ${f.name}`) // doesn't auto-delete at exit 
       val = await ddb.getItem('todo')
       fs.writeFileSync(f.name,val)
-      cp.spawnSync(editor, [f.name], {
-        stdio: 'inherit'
-      })
-
+      cp.spawnSync(editor, [f.name], {stdio: 'inherit'})
       const fVal = fs.readFileSync( f.name, 'utf8' )
-      const arDones = partitionByDONE( fVal.split('\n') ) //; console.dir(arDones.get(true))
-      ddb.putItem(arDones.get(false).join('\n'), 'todo') // the not DONEs
       f.removeCallback()  // alas, seems like we need to do it manually
-      const doneKey = td.isoToDayStr(td.isoStr())
-      val = await ddb.getItem(doneKey)
-      addDoneItemList( arDones.get(true), val, doneKey )
+
+      const [ dones, todos ] = partitionByDONE( fVal.split('\n') ) //; console.dir(dones)
+      if (todos) { // though will always be defined
+        ddb.putItem(todos.join('\n'), 'todo') // the not DONEs
+      }
+      if (dones) { // maybe undefined cuz we didn't DONE anything
+        const doneKey = td.isoToDayStr(td.isoStr())
+        val = await ddb.getItem(doneKey)
+        addDoneItemList( dones, val, doneKey )
+      }
     }
     return
   }
 
   // done stuff
-  const doneKey = td.isoToDayStr(td.isoStr())
+  let doneKey = td.isoToDayStr(td.isoStr())
+  if (av.length>=3 && av[2]=='-d') {
+    doneKey = av[3]
+    av.splice(2,2)
+  }
   val = await ddb.getItem(doneKey)
-  const newDone = process.argv.slice(2).join(' ')
+  const newDone = av.slice(2).join(' ')
   if (newDone == '') { // empty? just print current value
     console.log(val)
   } else { 
