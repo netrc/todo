@@ -4,27 +4,13 @@ const fs = require('fs')
 const cp = require('child_process')
 const tmp = require('tmp')
 const td = require('./src/tdates')
-const ddb = require('./src/ddb')
 const pa = require('./src/partition')
+const [ Model, Todo, Journal ] = require('./src/model').models()
 
-ddb.checkEnv() // check for AWS auth; or exits
+Model.checkEnv() // check for AWS auth; or exits
 
 const doneFilter = l => l.substring(0,4)=="DONE"
 const partitionByDONE = pa.partitionArrayBy(doneFilter)
-
-const putFileItem = async ( fname, itemKey ) => {
-  const fVal = fs.readFileSync( fname, 'utf8' )
-  await ddb.putItem( fVal, itemKey)
-}
-
-const addDoneItemList = async ( lines, oldVal, key ) => {
-    if (!lines)
-      return
-    const timeStr = td.isoToTimeStr(td.isoStr())
-    const newLines = lines.map( l => `[${timeStr}] ${l}` )
-    const newValStr = [ oldVal, ...newLines ].join('\n')   //; console.log(`putting... ${newValStr}`)
-    await ddb.putItem(newValStr, key)
-}
 
 const main = async () => {
   const av = process.argv
@@ -43,17 +29,17 @@ const main = async () => {
 
   if (av.length>=3 && av[2]=="-t") { // todo stuff
     if (av.length==3) {  // no more args, just show
-      val = await ddb.getItem('todo')
+      val = await Todo.get()
       console.log(val)
     }
     if (av[3]=='-f') {
       const fname = av[4]
-      putFileItem(fname, 'todo')
+      await Todo.putFile(fname)
     }
     if (av[3]=='-e') {
       const editor = ('EDITOR' in process.env) ? process.env.EDITOR : 'vi'
       const f = tmp.fileSync() //; console.log(`using ${f.name}`) // doesn't auto-delete at exit 
-      val = await ddb.getItem('todo')
+      val = await Todo.get()
       fs.writeFileSync(f.name,val)
       cp.spawnSync(editor, [f.name], {stdio: 'inherit'})
       const fVal = fs.readFileSync( f.name, 'utf8' )
@@ -61,12 +47,11 @@ const main = async () => {
 
       const [ dones, todos ] = partitionByDONE( fVal.split('\n') ) //; console.dir(dones)
       if (todos) { // though will always be defined
-        ddb.putItem(todos.join('\n'), 'todo') // the not DONEs
+        await Todo.put( todos.join('\n') ) // the not DONEs
       }
       if (dones) { // maybe undefined cuz we didn't DONE anything
         const doneKey = td.isoToDayStr(td.isoStr())
-        val = await ddb.getItem(doneKey)
-        addDoneItemList( dones, val, doneKey )
+        await Journal.addDoneItemList( dones, doneKey )
       }
     }
     return
@@ -76,14 +61,14 @@ const main = async () => {
   let doneKey = td.isoToDayStr(td.isoStr())
   if (av.length>=3 && av[2]=='-d') {
     doneKey = av[3]
-    av.splice(2,2)
+    av.splice(2,2) 
   }
-  val = await ddb.getItem(doneKey)
   const newDone = av.slice(2).join(' ')
   if (newDone == '') { // empty? just print current value
+    const val = await Journal.get(doneKey)
     console.log(val)
   } else { 
-    addDoneItemList( [ newDone ], val, doneKey )
+    await Journal.addDoneItemList( [ newDone ], doneKey )
   }
 }
 
