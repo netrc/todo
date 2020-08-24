@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
 const fs = require('fs')
+const process = require('process')
 const cp = require('child_process')
 const tmp = require('tmp')
 const td = require('./src/tdates')
@@ -29,7 +30,7 @@ const main = async () => {
 
   if (av.length>=3 && av[2]=='-t') { // todo stuff
     if (av.length==3) { // no more args, just show
-      val = await Todo.get()
+      const val = await Todo.get()
       console.log(val)
     }
     if (av[3]=='-f') {
