@@ -12,14 +12,15 @@ const Model = {
 
 // todo model
 const Todo = {
-  _type: 'todo' // ddb primary key
+  _type: 'todo', // ddb primary key
+  _defaultKey: 'main'
 }
-Todo.get = async () => {
-  const val = await ddb.getItem(Todo._type)
+Todo.get = async (tname=Todo._defaultKey) => {
+  const val = await ddb.getItem(Todo._type, tname)
   return val
 }
-Todo.put = async s => {
-  await ddb.putItem( s, Todo._type)
+Todo.put = async (s, tname=Todo._defaultKey) => {
+  await ddb.putItem( s, Todo._type, tname)
 }
 Todo.putFile = async fname => {
   const fVal = fs.readFileSync( fname, 'utf8' )
@@ -29,21 +30,24 @@ Todo.putFile = async fname => {
 
 // journal model
 const Journal = {
-  _type: 'journal' // ddb primary key
+  _type: 'journal' // ddb primary key // no default sk1
 }
 Journal.get = async key => {
-  const val = await ddb.getItem(key) // will use _type, key soon
+  const val = await ddb.getItem(Journal._type, key) // will use _type, key soon
   return val
+}
+Journal.put = async (s, jname) => {
+  await ddb.putItem( s, Journal._type, jname)
 }
 Journal.addDoneItemList = async ( lines, key ) => {
   if (!lines) {
     return
   }
-  const oldVal = await ddb.getItem(key)
+  const oldVal = await Journal.get(key)
   const timeStr = td.isoToTimeStr(td.isoStr())
   const newLines = lines.map( l => `[${timeStr}] ${l}` )
   const newValStr = [ oldVal, ...newLines ].join('\n')
-  await ddb.putItem(newValStr, key)
+  await Journal.put(newValStr, key)
 }
 
 
