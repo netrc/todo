@@ -6,7 +6,7 @@ const [ Model, Todo, Journal ] = require('./model').models()
 const j20200819 = `nothing yet
 23:36: ...something more...
 23:43: /home/ric/lsrc/ddb/to1.js
-23:43: 
+23:43:
 23:43: trying to add some text
 [07:48] trying to add to 2020-08-19`
   
