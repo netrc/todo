@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# 'j' - shortcut for do journal
+# j x y z - add to journal
+# j - just show today
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"   # gets dir where bin is, e.g. ~/bin
+LDIR=$(dirname "$(readlink "${BASH_SOURCE[0]}")")
+SDIR=$(dirname ${DIR}/${LDIR})  # remove last path (our src/bin dir)
+#echo source dir $SDIR
+
+exec ${SDIR}/t.js "$@"
