@@ -29,11 +29,12 @@ exports.setTable = t => {
 }
 
 // get and return 'done' string for given day
-exports.getItem = async key => {
+exports.getItem = async (type, key) => {
   const params = {
     TableName: conf.table,
     Key: {
-      pk1: key
+      pk1: type,
+      sk1: key
     }
   }
 
@@ -46,11 +47,12 @@ exports.getItem = async key => {
   return ('Item' in data) ? data.Item.val : ''
 }
 
-exports.putItem = async ( newVal, key ) => {
+exports.putItem = async ( newVal, type, key ) => {
   const params = {
     TableName: conf.table,
     Item: {
-      pk1: key,
+      pk1: type,
+      sk1: key,
       val: newVal
     }
   }
