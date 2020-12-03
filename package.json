@@ -17,6 +17,7 @@
   },
   "scripts": {
     "test": "node_modules/.bin/ava",
+    "lint": "node_modules/.bin/eslint t.js src",
     "build": "webpack"
   },
   "repository": {
