@@ -7,4 +7,4 @@ LDIR=$(dirname "$(readlink "${BASH_SOURCE[0]}")")
 SDIR=$(dirname ${DIR}/${LDIR})  # remove last path (our src/bin dir)
 #echo source dir $SDIR
 
-exec ${SDIR}/t.js -t -e 
+exec node ${SDIR}/t.js -t -e 
